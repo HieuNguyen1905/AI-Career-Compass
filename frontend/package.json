@@ -1,0 +1,40 @@
+{
+  "name": "ai20k-068-career-copilot",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "local": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@prisma/client": "6.19.3",
+    "@tailwindcss/postcss": "^4.3.1",
+    "bcryptjs": "latest",
+    "jose": "latest",
+    "lucide-react": "latest",
+    "next": "^16.2.9",
+    "openai": "latest",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-hot-toast": "^2.6.0",
+    "server-only": "latest",
+    "zod": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "autoprefixer": "^10.5.0",
+    "eslint": "8.57.1",
+    "eslint-config-next": "15.5.19",
+    "postcss": "^8.5.15",
+    "prisma": "6.19.3",
+    "tailwindcss": "^4.3.1",
+    "typescript": "5.9.2"
+  }
+}
