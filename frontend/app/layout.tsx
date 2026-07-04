@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import { Toaster } from "react-hot-toast";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
 const inter = Inter({
@@ -31,6 +32,7 @@ export default function RootLayout({
       <body className={`${inter.className} min-h-screen flex flex-col`} suppressHydrationWarning>
         {children}
         <Toaster position="top-right" />
+        <SpeedInsights />
       </body>
     </html>
   );
