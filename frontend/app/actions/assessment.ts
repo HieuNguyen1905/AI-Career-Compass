@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { cookies } from "next/headers";
-import { API_BASE, API_TIMEOUT_MS } from "@/lib/api-config";
+import { API_BASE, ASSESSMENT_SUBMIT_TIMEOUT_MS } from "@/lib/api-config";
 import { SESSION_COOKIE } from "@/lib/auth";
 
 const assessmentSchema = z.object({
@@ -15,14 +15,44 @@ const assessmentSchema = z.object({
   constraints: z.string().trim().min(1)
 });
 
-export async function submitAssessmentAction(formData: FormData) {
+export type AssessmentActionState = {
+  error: string | null;
+};
+
+async function readSubmitError(res: Response) {
+  const fallback = "Không thể hoàn tất phân tích nghề nghiệp lúc này.";
+  const body = await res.text().catch(() => "");
+  if (!body) return fallback;
+
+  try {
+    const data = JSON.parse(body) as { detail?: unknown; error?: unknown };
+    const message = typeof data.detail === "string" ? data.detail : data.error;
+    return typeof message === "string" && message.trim() ? message : fallback;
+  } catch {
+    return body.trim() || fallback;
+  }
+}
+
+export async function submitAssessmentAction(
+  previousStateOrFormData: AssessmentActionState | FormData,
+  maybeFormData?: FormData
+): Promise<AssessmentActionState> {
+  const formData = maybeFormData ?? (previousStateOrFormData instanceof FormData ? previousStateOrFormData : null);
+  if (!formData) {
+    return { error: "Không nhận được dữ liệu assessment. Vui lòng thử nộp lại." };
+  }
+
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE)?.value;
-  if (!token) return;
+  if (!token) {
+    return { error: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại." };
+  }
 
   const parsed = assessmentSchema.safeParse(Object.fromEntries(formData));
 
-  if (!parsed.success) return;
+  if (!parsed.success) {
+    return { error: "Vui lòng kiểm tra lại thông tin cá nhân trước khi nộp assessment." };
+  }
 
   // We need all answers from formData (keys start with q_)
   const answers: Record<string, number> = {};
@@ -48,16 +78,22 @@ export async function submitAssessmentAction(formData: FormData) {
         constraints: parsed.data.constraints,
         answers
       }),
-      signal: AbortSignal.timeout(API_TIMEOUT_MS),
+      signal: AbortSignal.timeout(ASSESSMENT_SUBMIT_TIMEOUT_MS),
     });
 
     if (!res.ok) {
-      console.error("Assessment submit failed", await res.text());
-      return;
+      const message = await readSubmitError(res);
+      console.error("Assessment submit failed", message);
+      return { error: message };
     }
   } catch (e) {
     console.error("Fetch assessment submit error", e);
-    return;
+    const isTimeout = e instanceof DOMException && e.name === "TimeoutError";
+    return {
+      error: isTimeout
+        ? "AI đang phân tích quá lâu. Vui lòng thử nộp lại để hệ thống tạo giải thích thật."
+        : "Không thể kết nối đến máy chủ phân tích.",
+    };
   }
 
   revalidatePath("/assessment");

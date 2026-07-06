@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="760" viewBox="0 0 1280 760" role="img" aria-labelledby="title desc">
+  <title id="title">AI Career Compass - Component Architecture</title>
+  <desc id="desc">Sơ đồ kiến trúc component của AI Career Compass gồm người dùng, frontend Next.js, backend FastAPI, data layer và OpenAI API.</desc>
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .panel { fill: #ffffff; stroke: #dbe5ee; stroke-width: 2; }
+      .panel-title { fill: #0f172a; font: 700 22px Arial, sans-serif; }
+      .label { fill: #1e293b; font: 600 17px Arial, sans-serif; }
+      .small { fill: #475569; font: 500 14px Arial, sans-serif; }
+      .box { fill: #f8fafc; stroke: #cbd5e1; stroke-width: 1.5; }
+      .teal { fill: #ecfdf5; stroke: #14b8a6; }
+      .blue { fill: #eff6ff; stroke: #38bdf8; }
+      .amber { fill: #fffbeb; stroke: #f59e0b; }
+      .rose { fill: #fff1f2; stroke: #fb7185; }
+      .arrow { stroke: #0f766e; stroke-width: 3; fill: none; marker-end: url(#arrowhead); }
+      .muted-arrow { stroke: #64748b; stroke-width: 2.5; fill: none; marker-end: url(#arrowhead-muted); }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#0f766e" />
+    </marker>
+    <marker id="arrowhead-muted" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#64748b" />
+    </marker>
+  </defs>
+
+  <rect class="bg" width="1280" height="760" />
+  <text x="54" y="58" class="panel-title">AI Career Compass - Component Architecture</text>
+  <text x="54" y="84" class="small">Các thành phần chính của MVP Gate G2 và quan hệ giữa frontend, backend, data layer và LLM.</text>
+
+  <rect x="54" y="125" width="180" height="110" rx="16" class="panel teal" />
+  <text x="88" y="170" class="label">User</text>
+  <text x="88" y="198" class="small">Student / Admin</text>
+
+  <rect x="310" y="104" width="270" height="558" rx="20" class="panel" />
+  <text x="346" y="145" class="panel-title">Next.js Frontend</text>
+  <text x="346" y="170" class="small">App Router, React, TypeScript, Tailwind</text>
+
+  <rect x="342" y="205" width="206" height="50" rx="12" class="box teal" />
+  <text x="386" y="237" class="label">Auth Pages</text>
+  <rect x="342" y="275" width="206" height="50" rx="12" class="box teal" />
+  <text x="370" y="307" class="label">Assessment UI</text>
+  <rect x="342" y="345" width="206" height="50" rx="12" class="box teal" />
+  <text x="388" y="377" class="label">Profile UI</text>
+  <rect x="342" y="415" width="206" height="50" rx="12" class="box teal" />
+  <text x="360" y="447" class="label">Explore / Detail</text>
+  <rect x="342" y="485" width="206" height="50" rx="12" class="box teal" />
+  <text x="372" y="517" class="label">AI Coach UI</text>
+  <rect x="342" y="555" width="206" height="50" rx="12" class="box teal" />
+  <text x="372" y="587" class="label">Admin Views</text>
+
+  <rect x="660" y="104" width="300" height="558" rx="20" class="panel" />
+  <text x="700" y="145" class="panel-title">FastAPI Backend</text>
+  <text x="700" y="170" class="small">Routers, domain logic, AI agent</text>
+
+  <rect x="694" y="205" width="232" height="50" rx="12" class="box blue" />
+  <text x="754" y="237" class="label">Auth Router</text>
+  <rect x="694" y="275" width="232" height="50" rx="12" class="box blue" />
+  <text x="724" y="307" class="label">Assessment Router</text>
+  <rect x="694" y="345" width="232" height="50" rx="12" class="box blue" />
+  <text x="744" y="377" class="label">Profile Router</text>
+  <rect x="694" y="415" width="232" height="50" rx="12" class="box blue" />
+  <text x="744" y="447" class="label">Advisor Router</text>
+  <rect x="694" y="485" width="232" height="50" rx="12" class="box amber" />
+  <text x="720" y="517" class="label">Matching Engine</text>
+  <rect x="694" y="555" width="232" height="50" rx="12" class="box rose" />
+  <text x="744" y="587" class="label">Advisor Agent</text>
+
+  <rect x="1035" y="142" width="190" height="250" rx="20" class="panel" />
+  <text x="1072" y="182" class="panel-title">Data Layer</text>
+  <text x="1070" y="210" class="small">Current MVP</text>
+  <rect x="1060" y="235" width="140" height="42" rx="10" class="box amber" />
+  <text x="1094" y="262" class="small">Mock Data</text>
+  <rect x="1060" y="292" width="140" height="42" rx="10" class="box amber" />
+  <text x="1088" y="319" class="small">Career DB</text>
+  <rect x="1060" y="349" width="140" height="42" rx="10" class="box amber" />
+  <text x="1087" y="376" class="small">Profiles</text>
+
+  <rect x="1035" y="472" width="190" height="110" rx="20" class="panel rose" />
+  <text x="1076" y="518" class="panel-title">OpenAI</text>
+  <text x="1084" y="546" class="small">LLM API</text>
+
+  <path d="M234 180 H310" class="arrow" />
+  <path d="M580 300 H660" class="arrow" />
+  <path d="M580 510 H660" class="arrow" />
+  <path d="M960 298 H1035" class="muted-arrow" />
+  <path d="M960 510 H1035" class="arrow" />
+  <path d="M810 465 V485" class="muted-arrow" />
+  <path d="M810 535 V555" class="muted-arrow" />
+
+  <text x="250" y="166" class="small">uses</text>
+  <text x="596" y="286" class="small">REST / Server Actions</text>
+  <text x="972" y="286" class="small">read/write</text>
+  <text x="980" y="496" class="small">prompt + context</text>
+</svg>

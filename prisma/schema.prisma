@@ -1,0 +1,114 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  STUDENT
+}
+
+enum UserStatus {
+  ACTIVE
+  DISABLED
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  name         String
+  passwordHash String
+  role         Role          @default(STUDENT)
+  status       UserStatus    @default(ACTIVE)
+  gradeLevel   String?
+  gender       String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  profile      CareerProfile?
+  conversations Conversation[]
+  careerMatchExplanations CareerMatchExplanation[]
+
+  @@index([createdAt(sort: Desc)])
+}
+
+model CareerProfile {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  gradeLevel       String
+  interests        String[]
+  strengths        String[]
+  favoriteSubjects String[]
+  values           String[] @default([])
+  riasec           String[] @default([])
+  goals            String
+  constraints      String
+  assessmentCompleted Boolean @default(false)
+  assessmentAnswers   Json    @default("{}")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CareerPath {
+  id                     String   @id @default(cuid())
+  title                  String   @unique
+  cluster                String
+  summary                String
+  subjects               String[]
+  jobSkills              String[] @default([])
+  majors                 String[]
+  activities             String[]
+  jobTasks               String[] @default([])
+  onetCode               String?  @unique
+  featureVector          Unsupported("vector(16)")?
+  featureVectorVersion   String?
+  featureVectorUpdatedAt DateTime?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+}
+
+model Conversation {
+  id        String    @id @default(cuid())
+  title     String
+  userId    String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  Message[]
+
+  @@index([userId, updatedAt(sort: Desc)])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  role           String
+  content        String
+  createdAt      DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt(sort: Desc), id(sort: Desc)])
+}
+
+model CareerMatchExplanation {
+  id               String   @id @default(cuid())
+  userId           String
+  assessmentHash   String
+  model            String
+  promptVersion    String   @default("v1")
+  careerIdsHash    String
+  matchesJson      Json
+  explanationsJson Json?
+  status           String   @default("pending")
+  errorMessage     String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, assessmentHash, model, promptVersion, careerIdsHash])
+  @@index([userId, assessmentHash])
+}

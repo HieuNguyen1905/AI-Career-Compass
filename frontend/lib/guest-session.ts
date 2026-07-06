@@ -133,6 +133,7 @@ export function hydrateGuestProfile(raw: unknown): CareerProfile | null {
     id: asString(raw.id, "guest_profile"),
     userId: asString(raw.userId, GUEST_USER_ID),
     gradeLevel: asString(raw.gradeLevel, "11"),
+    gender: raw.gender == null ? null : asString(raw.gender),
     interests: asStringArray(raw.interests),
     strengths: asStringArray(raw.strengths),
     favoriteSubjects: asStringArray(raw.favoriteSubjects),
@@ -213,7 +214,7 @@ export function loadGuestAssessmentDraft(): GuestAssessmentDraft | null {
 
   return {
     name: GUEST_USER_NAME,
-    gender: "",
+    gender: profile.gender ?? "",
     gradeLevel: profile.gradeLevel,
     goals: profile.goals,
     constraints: profile.constraints,
@@ -243,11 +244,12 @@ export function saveGuestProfile(profile: CareerProfile) {
       assessmentDraft: {
         ...(session.assessmentDraft ?? {
           name: GUEST_USER_NAME,
-          gender: "",
+          gender: profile.gender ?? "",
           gradeLevel: profile.gradeLevel,
           goals: profile.goals,
           constraints: profile.constraints,
         }),
+        gender: profile.gender ?? session.assessmentDraft?.gender ?? "",
         gradeLevel: profile.gradeLevel,
         goals: profile.goals,
         constraints: profile.constraints,

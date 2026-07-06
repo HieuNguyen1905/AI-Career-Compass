@@ -1,39 +1,40 @@
-# Dependencies
-/frontend/node_modules/
+# Environment
+.env
+.env.local
+.env*.local
 
 # Next.js
+node_modules/
 .next/
 out/
-build/
-dist/
-
-# Production and local build artifacts
-coverage/
 *.tsbuildinfo
+.next-dev*.log
+.backend-dev*.log
+.frontend-dev*.log
+.backend-*.log
+.frontend-*.log
 
-# Environment files
-.env
-.env.*
-!.env.example
-
-# Vercel
-.vercel/
-
-# Logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-
-# Editor and OS files
-.vscode/
-.idea/
-.DS_Store
-Thumbs.db
-
-# Local databases
+# Prisma
 *.db
 *.db-journal
-*.sqlite
-*.sqlite3
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+.venv312/
+venv312/
+build/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# OS
+.DS_Store
+
+# AI logs — tracked structure, ignored content
+.ai-log/*.jsonl
+.vscode/
+

@@ -201,6 +201,7 @@ function mapProfile(profile: ApiProfile): CareerProfile {
   return {
     ...profile,
     gradeLevel: repairText(String(profile.gradeLevel ?? "")),
+    gender: profile.gender == null ? null : repairText(String(profile.gender)),
     interests: repairList(profile.interests),
     strengths: repairList(profile.strengths),
     favoriteSubjects: repairList(profile.favoriteSubjects),

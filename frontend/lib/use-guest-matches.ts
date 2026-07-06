@@ -10,6 +10,8 @@ import {
 } from "@/lib/guest-session";
 import type { CareerMatch, CareerProfile } from "@/lib/types";
 
+const GUEST_MATCH_LIMIT = 5;
+
 export function useGuestMatches(limit = 5) {
   const [profile, setProfile] = useState<CareerProfile | null>(null);
   const [matches, setMatches] = useState<CareerMatch[]>([]);
@@ -24,7 +26,7 @@ export function useGuestMatches(limit = 5) {
     setMatches(storedMatches);
 
     if (!guestHasCompletedCurrentAssessment(storedProfile)) return;
-    if (storedMatches.length >= limit) return;
+    if (storedMatches.length >= Math.min(limit, GUEST_MATCH_LIMIT)) return;
 
     let cancelled = false;
 
@@ -35,7 +37,7 @@ export function useGuestMatches(limit = 5) {
         const response = await fetch("/api/guest/matches", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ profile: storedProfile, limit: Math.max(limit, 5) }),
+          body: JSON.stringify({ profile: storedProfile, limit: GUEST_MATCH_LIMIT }),
         });
         const data = await response.json().catch(() => []);
         if (!response.ok) {

@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="820" viewBox="0 0 1280 820" role="img" aria-labelledby="title desc">
+  <title id="title">AI Career Compass - Data Flow</title>
+  <desc id="desc">Sơ đồ data flow cho user flow chính: assessment, profile, matching, roadmap và AI Career Coach.</desc>
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .title { fill: #0f172a; font: 700 24px Arial, sans-serif; }
+      .subtitle { fill: #475569; font: 500 14px Arial, sans-serif; }
+      .step { fill: #ffffff; stroke: #dbe5ee; stroke-width: 2; }
+      .input { fill: #ecfdf5; stroke: #14b8a6; }
+      .process { fill: #eff6ff; stroke: #38bdf8; }
+      .output { fill: #fffbeb; stroke: #f59e0b; }
+      .ai { fill: #fff1f2; stroke: #fb7185; }
+      .label { fill: #1e293b; font: 700 18px Arial, sans-serif; }
+      .small { fill: #475569; font: 500 14px Arial, sans-serif; }
+      .arrow { stroke: #0f766e; stroke-width: 3; fill: none; marker-end: url(#arrowhead); }
+      .note { fill: #0f766e; font: 700 13px Arial, sans-serif; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#0f766e" />
+    </marker>
+  </defs>
+
+  <rect class="bg" width="1280" height="820" />
+  <text x="54" y="58" class="title">AI Career Compass - Main Data Flow</text>
+  <text x="54" y="84" class="subtitle">Luồng dữ liệu end-to-end cho user flow chính của học sinh.</text>
+
+  <rect x="70" y="132" width="280" height="88" rx="16" class="step input" />
+  <text x="106" y="168" class="label">1. Student Input</text>
+  <text x="106" y="195" class="small">Mục tiêu, bối cảnh, 32 câu assessment</text>
+
+  <rect x="500" y="132" width="280" height="88" rx="16" class="step process" />
+  <text x="536" y="168" class="label">2. Frontend Submit</text>
+  <text x="536" y="195" class="small">Next.js gửi form data tới backend</text>
+
+  <rect x="930" y="132" width="280" height="88" rx="16" class="step process" />
+  <text x="966" y="168" class="label">3. Assessment API</text>
+  <text x="966" y="195" class="small">Validate, clamp score 1-5, normalize answers</text>
+
+  <rect x="930" y="300" width="280" height="88" rx="16" class="step output" />
+  <text x="966" y="336" class="label">4. Career Profile</text>
+  <text x="966" y="363" class="small">RIASEC, subjects, interests, skills, values</text>
+
+  <rect x="500" y="300" width="280" height="88" rx="16" class="step process" />
+  <text x="536" y="336" class="label">5. Matching Engine</text>
+  <text x="536" y="363" class="small">So sánh profile với career database</text>
+
+  <rect x="70" y="300" width="280" height="88" rx="16" class="step output" />
+  <text x="106" y="336" class="label">6. Career Matches</text>
+  <text x="106" y="363" class="small">Top nghề, fit score, lý do phù hợp</text>
+
+  <rect x="70" y="468" width="280" height="88" rx="16" class="step output" />
+  <text x="106" y="504" class="label">7. Career Detail</text>
+  <text x="106" y="531" class="small">Mô tả, ngành học, activities, roadmap</text>
+
+  <rect x="500" y="468" width="280" height="88" rx="16" class="step input" />
+  <text x="536" y="504" class="label">8. Student Question</text>
+  <text x="536" y="531" class="small">Hỏi AI Career Coach về kết quả</text>
+
+  <rect x="930" y="468" width="280" height="88" rx="16" class="step ai" />
+  <text x="966" y="504" class="label">9. Advisor Agent</text>
+  <text x="966" y="531" class="small">Build context: profile + top matches</text>
+
+  <rect x="930" y="636" width="280" height="88" rx="16" class="step ai" />
+  <text x="966" y="672" class="label">10. OpenAI API</text>
+  <text x="966" y="699" class="small">LLM tạo phản hồi cá nhân hóa</text>
+
+  <rect x="500" y="636" width="280" height="88" rx="16" class="step output" />
+  <text x="536" y="672" class="label">11. AI Answer</text>
+  <text x="536" y="699" class="small">Gợi ý 2-3 hướng, lý do, hoạt động thử</text>
+
+  <path d="M350 176 H500" class="arrow" />
+  <path d="M780 176 H930" class="arrow" />
+  <path d="M1070 220 V300" class="arrow" />
+  <path d="M930 344 H780" class="arrow" />
+  <path d="M500 344 H350" class="arrow" />
+  <path d="M210 388 V468" class="arrow" />
+  <path d="M350 512 H500" class="arrow" />
+  <path d="M780 512 H930" class="arrow" />
+  <path d="M1070 556 V636" class="arrow" />
+  <path d="M930 680 H780" class="arrow" />
+
+  <text x="388" y="160" class="note">submit</text>
+  <text x="820" y="160" class="note">POST</text>
+  <text x="812" y="329" class="note">profile</text>
+  <text x="382" y="329" class="note">matches</text>
+  <text x="386" y="496" class="note">ask</text>
+  <text x="806" y="496" class="note">context</text>
+  <text x="820" y="664" class="note">answer</text>
+</svg>

@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: career-copilot-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: career_copilot
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - career_copilot_pg:/var/lib/postgresql/data
+
+volumes:
+  career_copilot_pg:

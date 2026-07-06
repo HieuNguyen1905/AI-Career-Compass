@@ -30,6 +30,7 @@ export type CareerProfile = {
   id: string;
   userId: string;
   gradeLevel: string;
+  gender?: string | null;
   interests: string[];
   strengths: string[];
   favoriteSubjects: string[];

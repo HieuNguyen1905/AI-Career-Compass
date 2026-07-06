@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { API_BASE, API_TIMEOUT_MS } from "@/lib/api-config";
+import { API_BASE, ASSESSMENT_SUBMIT_TIMEOUT_MS } from "@/lib/api-config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,7 +12,7 @@ export async function POST(request: Request) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
       cache: "no-store",
-      signal: AbortSignal.timeout(API_TIMEOUT_MS),
+      signal: AbortSignal.timeout(ASSESSMENT_SUBMIT_TIMEOUT_MS),
     });
 
     const data = await res.json().catch(() => ({}));

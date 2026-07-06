@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useActionState, useEffect, useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
@@ -20,14 +20,15 @@ import toast from "react-hot-toast";
 import { submitAssessmentAction } from "@/app/actions/assessment";
 import { CareerAnalysisLoading } from "@/components/career-analysis-loading";
 import {
-  clearGuestMatches,
   GUEST_USER_NAME,
+  hydrateGuestMatch,
   hydrateGuestProfile,
   loadGuestAssessmentDraft,
   saveGuestAssessmentDraft,
+  saveGuestMatches,
   saveGuestProfile,
 } from "@/lib/guest-session";
-import type { CareerProfile } from "@/lib/types";
+import type { CareerMatch, CareerProfile } from "@/lib/types";
 
 type AssessmentQuestion = {
   id: string;
@@ -198,6 +199,7 @@ function AssessmentSubmitButton({ pendingOverride }: { pendingOverride?: boolean
 
 export function AssessmentForm({ user, profile, questions, isGuest = false }: AssessmentFormProps) {
   const router = useRouter();
+  const [submitState, submitFormAction] = useActionState(submitAssessmentAction, { error: null });
   const [answers, setAnswers] = useState<Record<string, number>>(profile?.assessmentAnswers ?? {});
   const [name, setName] = useState(user.name.trim().length >= 2 ? user.name : GUEST_USER_NAME);
   const [gradeLevel, setGradeLevel] = useState(profile?.gradeLevel ?? user.gradeLevel ?? "11");
@@ -211,6 +213,7 @@ export function AssessmentForm({ user, profile, questions, isGuest = false }: As
   const [missingQuestionIds, setMissingQuestionIds] = useState<string[]>([]);
   const totalQuestions = questions.length;
   const answeredCount = questions.filter((question) => answers[question.id]).length;
+  const submitError = isGuest ? guestError : submitState.error;
   const progressPercent = totalQuestions > 0 ? Math.round((answeredCount / totalQuestions) * 100) : 0;
   const questionsByStep = useMemo(
     () =>
@@ -386,7 +389,7 @@ export function AssessmentForm({ user, profile, questions, isGuest = false }: As
           answers,
         }),
       });
-      const data = (await response.json().catch(() => ({}))) as { profile?: unknown; error?: string };
+      const data = (await response.json().catch(() => ({}))) as { matches?: unknown; profile?: unknown; error?: string };
       if (!response.ok) {
         throw new Error(data.error ?? "Không thể xử lý assessment dùng thử.");
       }
@@ -396,8 +399,15 @@ export function AssessmentForm({ user, profile, questions, isGuest = false }: As
         throw new Error("Kết quả assessment không hợp lệ.");
       }
 
+      const matches = Array.isArray(data.matches)
+        ? data.matches.map(hydrateGuestMatch).filter((match): match is CareerMatch => Boolean(match))
+        : [];
+      if (matches.length < 5) {
+        throw new Error("AI chưa tạo đủ giải thích nghề nghiệp cho Top 5. Vui lòng thử lại sau ít phút.");
+      }
+
       saveGuestProfile(profile);
-      clearGuestMatches();
+      saveGuestMatches(matches);
       router.push("/profile");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Có lỗi khi xử lý assessment.";
@@ -409,7 +419,7 @@ export function AssessmentForm({ user, profile, questions, isGuest = false }: As
   }
 
   return (
-    <form className="grid gap-5" action={isGuest ? undefined : submitAssessmentAction} noValidate onSubmit={handleAssessmentSubmit}>
+    <form className="grid gap-5" action={isGuest ? undefined : submitFormAction} noValidate onSubmit={handleAssessmentSubmit}>
       <section className="card overflow-hidden">
         <div className="border-b border-slate-100 bg-white/70 p-5 lg:p-6">
           <span className="text-xs font-black uppercase tracking-wide text-teal-700">Thông tin cá nhân</span>
@@ -709,9 +719,9 @@ export function AssessmentForm({ user, profile, questions, isGuest = false }: As
         );
       })}
 
-      {guestError ? (
+      {submitError ? (
         <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-700">
-          {guestError}
+          {submitError}
         </div>
       ) : null}
 
