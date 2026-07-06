@@ -943,24 +943,37 @@ class UniversityLookupTool:
         advisor_context: dict[str, Any],
         history: list | None = None,
         limit: int = 5,
+        conversation_state: dict[str, Any] | None = None,
     ) -> dict[str, Any] | None:
-        if not self.is_relevant(message, history):
+        conversation_state = conversation_state or self.build_conversation_state(message, history)
+        effective_message = conversation_state.get("rewrittenQuestion") or message
+        current_relevant = self.is_relevant(message, None)
+        context_relevant = (
+            bool(conversation_state.get("usedHistory"))
+            and self.is_relevant(effective_message, None)
+        )
+        if not (current_relevant or context_relevant):
             return None
 
-        query_text = self._query_text(message, advisor_context, history)
-        filters = self._extract_filters(message)
-        mention_text = (
-            f"{message} {self._combined_text('', history)}"
-            if self._needs_history_context(message)
-            else message
+        query_text = self._query_text(effective_message, advisor_context, history)
+        filters = self._extract_filters(effective_message)
+        mention_text = effective_message
+        target_program = (
+            self._extract_program_focus(mention_text)
+            or conversation_state.get("targetProgram")
         )
-        has_program_anchor = self._has_program_anchor(mention_text)
-        target_program = self._extract_program_focus(mention_text)
-        asks_admission_score = self._asks_admission_score(message)
-        asks_tuition = self._asks_tuition(message)
+        has_program_anchor = bool(target_program) or self._has_program_anchor(mention_text)
+        asks_admission_score = (
+            self._asks_admission_score(effective_message)
+            or bool(conversation_state.get("asksAdmissionScore"))
+        )
+        asks_tuition = (
+            self._asks_tuition(effective_message)
+            or bool(conversation_state.get("asksTuition"))
+        )
         mentioned_records = self._mentioned_records(mention_text)
         wide_web_search = self._should_use_wide_web_search(
-            message=message,
+            message=effective_message,
             has_program_anchor=has_program_anchor,
             mentioned_records=mentioned_records,
             filters=filters,
@@ -993,8 +1006,11 @@ class UniversityLookupTool:
         return {
             "isRelevant": True,
             "toolName": "UniversityLookupTool",
+            "conversationState": conversation_state,
             "queryUnderstanding": {
                 "rawMessage": message,
+                "rewrittenQuestion": effective_message,
+                "usedConversationState": bool(conversation_state.get("usedHistory")),
                 "queryText": query_text,
                 "hasProgramAnchor": has_program_anchor,
                 "targetProgram": target_program,
@@ -1015,7 +1031,7 @@ class UniversityLookupTool:
                     or wide_web_search
                     or bool(filters.get("admissionScoreFilter"))
                     or bool(target_program and asks_admission_score)
-                    or self.needs_live_search(message)
+                    or self.needs_live_search(effective_message)
                     or asks_admission_score
                     or asks_tuition
                     or (has_program_anchor and not results)
@@ -1109,15 +1125,22 @@ class UniversityLookupTool:
     def _extract_program_phrase(self, normalized: str) -> str | None:
         patterns = [
             r"(?:nganh|nghe|huong|linh vuc)\s+(.+?)(?=,|\s+diem|\s+hoc phi|\s+o\s+|\s+tai\s+|\s+mien\s+|\s+duoi\s+|\s+tren\s+|\s+tu\s+\d|$)",
+            r"(?:nen\s+)?hoc\s+(.+?)(?=,|\s+diem|\s+hoc phi|\s+o\s+truong|\s+o\s+dau|\s+truong|\s+tai\s+|\s+mien\s+|\s+duoi\s+|\s+tren\s+|\s+tu\s+\d|$)",
             r"(?:cho|ve)\s+(.+?)(?=,|\s+diem|\s+hoc phi|\s+o\s+|\s+tai\s+|\s+mien\s+|\s+duoi\s+|\s+tren\s+|\s+tu\s+\d|$)",
         ]
-        stop_words = {"nay", "nao", "phu hop", "truong", "cac truong"}
+        stop_words = {"nay", "nao", "phu hop", "truong", "cac truong", "dau", "o dau"}
         for pattern in patterns:
             match = re.search(pattern, normalized)
             if not match:
                 continue
             phrase = re.sub(r"\s+", " ", match.group(1)).strip()
-            if not phrase or phrase in stop_words or len(phrase) < 3:
+            if (
+                not phrase
+                or phrase in stop_words
+                or phrase.startswith(("o ", "tai "))
+                or "truong nao" in phrase
+                or len(phrase) < 3
+            ):
                 continue
             return phrase[:80]
         return None
@@ -1187,6 +1210,24 @@ class UniversityLookupTool:
                 "value": value,
                 "inclusive": inclusive,
                 "label": f"{label_prefix} {self._format_score(value)} điểm",
+            }
+
+        approximate_patterns = [
+            rf"(?:diem\s*(?:em|cua em)?\s*(?:khoang|tam|la)?|em\s*(?:duoc|khoang|tam)?|khoang|tam)\s*{number}\s*(?:diem)?",
+            rf"{number}\s*diem",
+        ]
+        for pattern in approximate_patterns:
+            match = re.search(pattern, normalized)
+            if not match:
+                continue
+            value = self._parse_score_number(match.group(1))
+            if value is None:
+                continue
+            return {
+                "operator": "max",
+                "value": value,
+                "inclusive": True,
+                "label": f"khong qua {self._format_score(value)} diem",
             }
 
         return None
@@ -1337,17 +1378,19 @@ class UniversityLookupTool:
 
         target_program = understanding.get("targetProgram")
         admission_score_filter = understanding.get("admissionScoreFilter")
+        effective_message = understanding.get("rewrittenQuestion") or message
 
         compact_context = {
-            "currentQuestion": message,
+            "currentQuestion": effective_message,
+            "originalQuestion": message if effective_message != message else None,
             "webSearchMode": understanding.get("webSearchMode", "candidate"),
             "suggestedOfficialSearchQueries": self._official_search_queries(
-                message,
+                effective_message,
                 candidate_programs,
                 broad_web_search=broad_web_search,
             ),
             "genericSearchQueries": self._generic_search_queries(
-                message,
+                effective_message,
                 history,
                 target_program=target_program,
                 admission_score_filter=admission_score_filter,
@@ -1365,6 +1408,7 @@ class UniversityLookupTool:
                 broad_web_search,
             ),
             "lookupUnderstanding": understanding,
+            "conversationState": lookup.get("conversationState", {}),
             "catalogCoverage": lookup.get("catalogCoverage", {}),
             "dataSourcePolicy": lookup.get("dataSourcePolicy", {}),
             "retrievalPolicy": {
@@ -1409,6 +1453,172 @@ class UniversityLookupTool:
             if content:
                 parts.append(str(content))
         return normalize_text(" ".join(parts))
+
+    def build_conversation_state(
+        self,
+        message: str,
+        history: list | None = None,
+    ) -> dict[str, Any]:
+        current = self._state_signals_from_text(message)
+        history_state = self._history_state(history)
+        needs_context = self._needs_conversation_state(message, current, history_state)
+        state = self._merge_state(history_state if needs_context else {}, current)
+        state["rewrittenQuestion"] = self._rewrite_question(message, state, needs_context)
+        state["rawMessage"] = message
+        state["usedHistory"] = needs_context and bool(history_state)
+        return state
+
+    def _conversation_turns(self, history: list | None) -> list[dict[str, str]]:
+        turns: list[dict[str, str]] = []
+        for turn in history or []:
+            role = getattr(turn, "role", None) or (
+                turn.get("role") if isinstance(turn, dict) else None
+            )
+            content = getattr(turn, "content", None) or (
+                turn.get("content") if isinstance(turn, dict) else None
+            )
+            if role in ("user", "assistant") and content:
+                turns.append({"role": str(role), "content": str(content)})
+        return turns
+
+    def _history_state(self, history: list | None) -> dict[str, Any]:
+        state: dict[str, Any] = {}
+        for turn in reversed(self._conversation_turns(history)[-8:]):
+            if turn["role"] != "user":
+                continue
+            state = self._merge_state(state, self._state_signals_from_text(turn["content"]))
+            if state.get("targetProgram") and state.get("intent"):
+                break
+        return state
+
+    def _state_signals_from_text(self, text: str) -> dict[str, Any]:
+        filters = self._extract_filters(text)
+        program = self._extract_program_focus(text)
+        mentioned_records = self._mentioned_records(text)
+        return {
+            "intent": self._intent_from_text(text),
+            "targetProgram": program,
+            "targetRegion": filters.get("targetRegion"),
+            "targetYear": filters.get("targetYear"),
+            "admissionScoreFilter": filters.get("admissionScoreFilter"),
+            "budgetPreference": filters.get("budgetPreference"),
+            "asksAdmissionScore": self._asks_admission_score(text),
+            "asksTuition": self._asks_tuition(text),
+            "mentionedSchools": list(
+                dict.fromkeys(record["schoolName"] for record in mentioned_records)
+            ),
+            "hasProgramAnchor": bool(program) or self._has_program_anchor(text),
+            "hasSchoolIntent": self._has_school_selection_intent(text),
+        }
+
+    def _merge_state(self, base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
+        merged = dict(base)
+        for key, value in override.items():
+            if value in (None, "", [], False):
+                continue
+            if key == "mentionedSchools":
+                merged[key] = list(dict.fromkeys([*(merged.get(key) or []), *value]))
+            elif key in {"asksAdmissionScore", "asksTuition", "hasProgramAnchor", "hasSchoolIntent"}:
+                merged[key] = bool(merged.get(key)) or bool(value)
+            else:
+                merged[key] = value
+        return merged
+
+    def _needs_conversation_state(
+        self,
+        message: str,
+        current: dict[str, Any],
+        history_state: dict[str, Any],
+    ) -> bool:
+        if not history_state:
+            return False
+        if self._needs_history_context(message):
+            return True
+        current_filters = any(
+            current.get(key)
+            for key in (
+                "targetRegion",
+                "targetYear",
+                "admissionScoreFilter",
+                "budgetPreference",
+            )
+        )
+        if current_filters and not current.get("hasProgramAnchor"):
+            return True
+        if (
+            (current.get("asksAdmissionScore") or current.get("asksTuition"))
+            and not current.get("hasProgramAnchor")
+        ):
+            return True
+        normalized = normalize_text(message)
+        return bool(
+            history_state.get("intent") or history_state.get("targetProgram")
+        ) and self._looks_like_contextual_follow_up(normalized)
+
+    def _looks_like_contextual_follow_up(self, normalized: str) -> bool:
+        if any(term in normalized for term in ["the con", "vay con", "neu", "con neu"]):
+            return True
+        if any(term in normalized for term in ["diem em", "em duoc", "em khoang", "khoang"]):
+            return bool(re.search(r"\b\d{1,2}(?:\.\d{1,2})?\b", normalized))
+        return bool(
+            re.search(r"\b\d{1,2}(?:\.\d{1,2})?\s*diem\b", normalized)
+            or any(term in normalized for term in ["nganh nay", "truong nay", "truong do"])
+        )
+
+    def _intent_from_text(self, text: str) -> str | None:
+        if self._asks_admission_score(text):
+            return "admission_score"
+        if self._asks_tuition(text):
+            return "tuition"
+        if self._has_school_selection_intent(text):
+            return "university_select"
+        return None
+
+    def _has_school_selection_intent(self, text: str) -> bool:
+        normalized = normalize_text(text)
+        return bool(
+            any(signal in normalized for signal in WIDE_SCHOOL_SEARCH_SIGNALS)
+            or "nen hoc" in normalized
+            or "hoc o dau" in normalized
+            or "truong nao" in normalized
+            or "dai hoc nao" in normalized
+        )
+
+    def _rewrite_question(
+        self,
+        message: str,
+        state: dict[str, Any],
+        used_history: bool,
+    ) -> str:
+        if not used_history:
+            return message
+        intent = state.get("intent") or "university_select"
+        program = state.get("targetProgram") or {}
+        program_name = program.get("canonicalName") if isinstance(program, dict) else None
+        parts: list[str] = []
+        if intent == "admission_score" or state.get("asksAdmissionScore"):
+            parts.append("diem chuan")
+        elif intent == "tuition" or state.get("asksTuition"):
+            parts.append("hoc phi")
+        else:
+            parts.append("tim cac truong dai hoc")
+        if program_name:
+            parts.append(f"nganh {program_name}")
+        schools = state.get("mentionedSchools") or []
+        if schools and not program_name:
+            parts.append(" ".join(str(school) for school in schools[:2]))
+        if state.get("targetRegion"):
+            parts.append(f"o {state['targetRegion']}")
+        if state.get("admissionScoreFilter"):
+            label = state["admissionScoreFilter"].get("label")
+            if label:
+                parts.append(str(label))
+        if state.get("budgetPreference"):
+            parts.append(f"uu tien hoc phi {state['budgetPreference']}")
+        if state.get("targetYear"):
+            parts.append(str(state["targetYear"]))
+        rewritten = " ".join(part.strip() for part in parts if part).strip()
+        return rewritten or message
 
     def _query_text(
         self,
@@ -1575,6 +1785,7 @@ class UniversityLookupTool:
             "ky su moi truong", "ki su moi truong", "co khi", "dien dien tu",
             "cong nghe thong tin", "phan mem", "marketing", "tai chinh",
             "ke toan", "kien truc", "thiet ke", "xay dung",
+            "luat", "luat kinh te", "phap ly", "quan he quoc te",
         ]
         if any(anchor in normalized for anchor in anchors):
             return True

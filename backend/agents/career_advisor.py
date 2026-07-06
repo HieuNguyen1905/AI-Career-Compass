@@ -251,6 +251,7 @@ class AdvisorAgent:
         history: Optional[list] = None,
         resolved_careers: Optional[list] = None,
         user_context: Optional[dict] = None,
+        conversation_state: Optional[dict[str, Any]] = None,
     ):
         if resolved_careers is None:
             resolved_careers = self.resolve_career_entities(
@@ -279,9 +280,15 @@ class AdvisorAgent:
                 for career in resolved_careers
             ],
         }
-        university_lookup = self.university_lookup_tool.lookup(message, context, history)
+        university_lookup = self.university_lookup_tool.lookup(
+            message,
+            context,
+            history,
+            conversation_state=conversation_state,
+        )
         if university_lookup:
             context["universityLookup"] = university_lookup
+            context["conversationState"] = university_lookup.get("conversationState")
         return context
 
     def _normalize_message(self, message: str) -> str:
@@ -741,6 +748,7 @@ class AdvisorAgent:
         matches,
         history: Optional[list] = None,
         career_titles: Iterable[str] | None = None,
+        scope_message: str | None = None,
     ) -> AdvisorPreparation:
         safety = self.detect_safety(message)
         if safety.result == SafetyResult.CRISIS:
@@ -756,8 +764,9 @@ class AdvisorAgent:
                 safety=safety,
             )
 
+        scope_message = scope_message or message
         rule_scope = self.detect_scope(
-            message,
+            scope_message,
             career_titles=career_titles,
             matches=matches,
             history=history,
@@ -803,7 +812,7 @@ class AdvisorAgent:
             )
 
         llm_scope = await self.classify_scope_with_llm(
-            message=message,
+            message=scope_message,
             matches=matches,
             history=history,
             resolved_careers=rule_scope.resolved_careers,
@@ -849,12 +858,15 @@ class AdvisorAgent:
         career_titles: Iterable[str] | None = None,
         user_context: Optional[dict] = None,
     ) -> str:
+        conversation_state = self.university_lookup_tool.build_conversation_state(message, history)
+        scope_message = conversation_state.get("rewrittenQuestion") or message
         preparation = await self.prepare_advisor_request(
             message,
             profile,
             matches,
             history,
             career_titles=career_titles,
+            scope_message=scope_message,
         )
         if preparation.early_response:
             return preparation.early_response
@@ -866,6 +878,7 @@ class AdvisorAgent:
             history,
             resolved_careers=preparation.resolved_careers,
             user_context=user_context,
+            conversation_state=conversation_state,
         )
         self._add_scope_context(context, preparation)
         if not self.api_key:
@@ -912,12 +925,15 @@ class AdvisorAgent:
         career_titles: Iterable[str] | None = None,
         user_context: Optional[dict] = None,
     ) -> AsyncGenerator[str, None]:
+        conversation_state = self.university_lookup_tool.build_conversation_state(message, history)
+        scope_message = conversation_state.get("rewrittenQuestion") or message
         preparation = await self.prepare_advisor_request(
             message,
             profile,
             matches,
             history,
             career_titles=career_titles,
+            scope_message=scope_message,
         )
         if preparation.early_response:
             yield preparation.early_response
@@ -930,6 +946,7 @@ class AdvisorAgent:
             history,
             resolved_careers=preparation.resolved_careers,
             user_context=user_context,
+            conversation_state=conversation_state,
         )
         self._add_scope_context(context, preparation)
         if not self.api_key:
